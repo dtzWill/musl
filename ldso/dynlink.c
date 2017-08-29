@@ -1744,6 +1744,12 @@ void *dlopen(const char *file, int mode)
 
 	if (!file) return head;
 
+	// Hack for testing against ALLVM
+	if (getenv("DISABLE_DLOPEN")) {
+		error("Dynamic loading not supported, DISABLE_DLOPEN env set");
+		return 0;
+	}
+
 	pthread_setcancelstate(PTHREAD_CANCEL_DISABLE, &cs);
 	pthread_rwlock_wrlock(&lock);
 	__inhibit_ptc();

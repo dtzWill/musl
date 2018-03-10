@@ -84,6 +84,34 @@ static inline void unlock_bin(int i)
 	unlock(mal.bins[i].lock);
 }
 
+void prefork_lock() {
+	int i;
+	for (i = 0; i < 64; ++i)
+		lock_bin(i);
+}
+
+void postfork_unlock_parent() {
+	int i;
+	for (i = 63; i >= 0; --i)
+		unlock_bin(i);
+}
+
+static inline void clear_lock(volatile int *lk)
+{
+	lk[0] = 0;
+	lk[1] = 0;
+}
+
+void postfork_unlock_child() {
+	// We don't own any locks anyway, parent does.
+	// So just reinitialize (clear out) lock vars.
+	//
+	// This is probably terrible.
+	int i;
+	for (i = 63; i >= 0; --i)
+		clear_lock(mal.bins[i].lock);
+}
+
 static int first_set(uint64_t x)
 {
 #if 1

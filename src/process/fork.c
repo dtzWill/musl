@@ -11,12 +11,19 @@ static void dummy(int x)
 
 weak_alias(dummy, __fork_handler);
 
+void prefork_lock();
+void postfork_unlock_parent();
+void postfork_unlock_child();
+
 pid_t fork(void)
 {
 	pid_t ret;
 	sigset_t set;
 	__fork_handler(-1);
 	__block_all_sigs(&set);
+  // Important that we can't become MT while acquiring locks
+  // (last paragraph here: http://www.openwall.com/lists/musl/2017/06/18/9 )
+	prefork_lock();
 #ifdef SYS_fork
 	ret = __syscall(SYS_fork);
 #else
@@ -28,6 +35,9 @@ pid_t fork(void)
 		self->robust_list.off = 0;
 		self->robust_list.pending = 0;
 		libc.threads_minus_1 = 0;
+		postfork_unlock_child();
+	} else {
+		postfork_unlock_parent();
 	}
 	__restore_sigs(&set);
 	__fork_handler(!ret);

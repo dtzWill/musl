@@ -5,6 +5,9 @@
 #include <stddef.h>
 #include <string.h>
 #include <strings.h>
+#include "time_impl.h"
+
+struct tm *__localtime_r(const time_t *restrict, struct tm *restrict);
 
 char *strptime(const char *restrict s, const char *restrict f, struct tm *restrict tm)
 {
@@ -119,6 +122,15 @@ char *strptime(const char *restrict s, const char *restrict f, struct tm *restri
 			min = 0;
 			range = 61;
 			goto numeric_range;
+		case 's':
+			if (!isdigit(*s)) return 0;
+			else {
+				char *new_s;
+				time_t t = strtoull(s, &new_s, 10);
+				s = new_s;
+				if (!__localtime_r(&t, tm)) return 0;
+			}
+			break;
 		case 'T':
 			s = strptime(s, "%H:%M:%S", tm);
 			if (!s) return 0;
